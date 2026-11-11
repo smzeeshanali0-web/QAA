@@ -1,0 +1,27 @@
+# One-command server with automatic HTTPS (needs a domain name pointing to this server, ports 80 + 443 open).
+#   1) cp ai-backend/.env.example ai-backend/.env   (fill API_KEY, ELEVENLABS_API_KEY ...)
+#   2) DOMAIN=voice.example.com docker compose up -d --build
+# Host networking is used on purpose: SIP/RTP needs the real UDP ports 10000-20000 (open them in the firewall).
+services:
+  backend:
+    build: ./ai-backend
+    network_mode: host
+    env_file: ./ai-backend/.env
+    environment:
+      - DATA_DIR=/data
+    command: uvicorn app.main:app --host 127.0.0.1 --port 8000
+    volumes:
+      - aidata:/data
+    restart: unless-stopped
+  caddy:
+    image: caddy:2
+    network_mode: host
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    restart: unless-stopped
+volumes:
+  aidata: {}
+  caddydata: {}
